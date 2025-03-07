@@ -21,6 +21,8 @@ return [
             'amazons3_region' => 'us-east-2',
             'amazons3_bucket' => null,
             'amazons3_expiration' => 0,
+            'amazons3_endpoint' => null,
+            'amazons3_use_path_style_endpoint' => false,
         ],
     ],
 ];

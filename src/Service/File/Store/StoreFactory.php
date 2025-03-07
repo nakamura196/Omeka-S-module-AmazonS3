@@ -25,6 +25,8 @@ class StoreFactory implements FactoryInterface
             'region' => $settings->get(AwsS3::OPTION_REGION, 'us-east-2'),
             'bucket' => $settings->get(AwsS3::OPTION_BUCKET),
             'expiration' => max(0, (int) $settings->get(AwsS3::OPTION_EXPIRATION, 0)),
+            'endpoint' => $settings->get(AwsS3::OPTION_ENDPOINT),
+            'usePathStyle' => (bool) $settings->get(AwsS3::OPTION_USE_PATH_STYLE, false),
         ];
 
         if (empty($parameters['key']) || empty($parameters['secretKey'])) {

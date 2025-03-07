@@ -7,6 +7,7 @@ use Aws\S3\S3Client;
 use Laminas\Log\Logger;
 use Omeka\File\Exception\RuntimeException;
 use Omeka\File\Store\StoreInterface;
+use Aws\Exception\AwsException;
 
 /**
  * Cloud storage adapter for Amazon S3, using AWS SDK.
@@ -18,6 +19,8 @@ class AwsS3 implements StoreInterface
     const OPTION_REGION = 'amazons3_region';
     const OPTION_BUCKET = 'amazons3_bucket';
     const OPTION_EXPIRATION = 'amazons3_expiration';
+    const OPTION_ENDPOINT = 'amazons3_endpoint';
+    const OPTION_USE_PATH_STYLE = 'amazons3_use_path_style_endpoint';
 
     const STREAM_WRAPPER_NAME = 's3';
 
@@ -47,6 +50,11 @@ class AwsS3 implements StoreInterface
     protected $lastError;
 
     /**
+     * @var array
+     */
+    protected $parameters;
+
+    /**
      * @param Logger $logger
      * @param array $parameters
      */
@@ -55,12 +63,24 @@ class AwsS3 implements StoreInterface
         $this->logger = $logger;
         $this->bucket = $parameters['bucket'];
         $this->expiration = $parameters['expiration'];
+        $this->parameters = $parameters;
 
-        $this->client = new S3Client([
+        $clientOptions = [
             'version' => 'latest',
-            'region' => $parameters['region'],
             'credentials' => new Credentials($parameters['key'], $parameters['secretKey']),
-        ]);
+        ];
+
+        if (!empty($parameters['endpoint'])) {
+            $clientOptions['endpoint'] = $parameters['endpoint'];
+            if (!empty($parameters['usePathStyle'])) {
+                $clientOptions['use_path_style_endpoint'] = true;
+            }
+            $clientOptions['region'] = $parameters['region'] ?: 'us-east-1';
+        } else {
+            $clientOptions['region'] = $parameters['region'];
+        }
+
+        $this->client = new S3Client($clientOptions);
         $this->client->registerStreamWrapper();
     }
 
@@ -345,5 +365,51 @@ class AwsS3 implements StoreInterface
         }
 
         return $uri;
+    }
+
+    /**
+     * Check if the bucket is valid.
+     *
+     * @return bool
+     */
+    protected function checkBucket()
+    {
+        $bucket = $this->getBucketName();
+        if (!$bucket) {
+            return false;
+        }
+
+        // カスタムエンドポイントが設定されている場合はリージョンチェックをスキップ
+        if (!empty($this->parameters['endpoint'])) {
+            try {
+                // バケットが存在するか確認するだけ
+                $this->client->headBucket([
+                    'Bucket' => $bucket,
+                ]);
+                return true;
+            } catch (AwsException $e) {
+                $this->getLogger()->err(
+                    sprintf('Amazon S3 error when checking bucket: %s', $e->getMessage())
+                );
+                return false;
+            }
+        }
+
+        // 通常のAWS S3の場合は従来通りのリージョンチェック
+        try {
+            $region = $this->client->determineBucketRegion($bucket);
+            if ($region !== $this->parameters['region']) {
+                $this->getLogger()->err(
+                    sprintf('Wrong region. Please use region of a bucket: %s', $region)
+                );
+                return false;
+            }
+            return true;
+        } catch (AwsException $e) {
+            $this->getLogger()->err(
+                sprintf('Amazon S3 error when checking bucket: %s', $e->getMessage())
+            );
+            return false;
+        }
     }
 }

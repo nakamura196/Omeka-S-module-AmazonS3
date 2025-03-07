@@ -65,10 +65,32 @@ class ConfigForm extends Form
                 'type' => Element\Number::class,
                 'options' => [
                     'label' => 'Expiration (minutes)', // @translate
-                    'info' => 'If an expiration time is set and greater than zero, we’re uploading private files and using signed URLs. If not, we’re uploading public files.', // @translate
+                    'info' => 'If an expiration time is set and greater than zero, we\'re uploading private files and using signed URLs. If not, we\'re uploading public files.', // @translate
                 ],
                 'attributes' => [
                     'id' => 'amazons3_expiration',
+                ],
+            ])
+            ->add([
+                'name' => 'amazons3_endpoint',
+                'type' => Element\Text::class,
+                'options' => [
+                    'label' => 'カスタムエンドポイントURL', // @translate
+                    'info' => 'S3互換ストレージ（MinIO、Wasabi、Backblaze B2など）を使用する場合に指定します。AWSのS3を使用する場合は空白のままにしてください。', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'amazons3_endpoint',
+                ],
+            ])
+            ->add([
+                'name' => 'amazons3_use_path_style_endpoint',
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'label' => 'パススタイルエンドポイントを使用', // @translate
+                    'info' => '一部のS3互換ストレージではパススタイルエンドポイントが必要です。不明な場合はストレージプロバイダのドキュメントを確認してください。', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'amazons3_use_path_style_endpoint',
                 ],
             ])
         ;
